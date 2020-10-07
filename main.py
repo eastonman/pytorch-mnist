@@ -4,7 +4,7 @@ from torch import nn, optim
 from torch.nn.functional import relu as Relu
 
 # train settings
-batch_size = 32
+batch_size = 64
 
 # MNIST Datasets
 train_dataset = datasets.MNIST(root='./data/',
@@ -28,12 +28,18 @@ test_loader = DataLoader(dataset=test_dataset,
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
-        self.l1 = nn.Linear(784, 320)
-        self.l2 = nn.Linear(320, 120)
-        self.l3 = nn.Linear(120, 10)
+        self.conv1 = nn.Conv2d(1, 5, kernel_size=5)
+        self.mp = nn.MaxPool2d(2)
+        self.conv2 = nn.Conv2d(5, 20, kernel_size=5)
+        self.l1 = nn.Linear(320, 180)
+        self.l2 = nn.Linear(180, 60)
+        self.l3 = nn.Linear(60, 10)
 
     def forward(self, x):
-        x = x.view(-1, 784)
+        input_size = x.size(0)
+        x = Relu(self.mp(self.conv1(x)))
+        x = Relu(self.mp(self.conv2(x)))
+        x = x.view(input_size, -1)  # Flatten the tensor
         x = Relu(self.l1(x))
         x = Relu(self.l2(x))
         # no need for activation function because using CrossEntropyLoss
@@ -42,7 +48,7 @@ class Model(nn.Module):
 
 model = Model()
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.5)
+optimizer = optim.SGD(model.parameters(), lr=3e-2, momentum=0.5)
 
 
 def train(epoch):
