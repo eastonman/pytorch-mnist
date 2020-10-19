@@ -2,7 +2,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from torch import nn, optim
 from torch.nn.functional import relu as Relu
-
+from tqdm import tqdm
 # train settings
 batch_size = 64
 
@@ -33,6 +33,7 @@ class Model(nn.Module):
         self.conv2 = nn.Conv2d(5, 20, kernel_size=5)
         self.l1 = nn.Linear(320, 180)
         self.l2 = nn.Linear(180, 60)
+        self.dropout = nn.Dropout(p=0.2)
         self.l3 = nn.Linear(60, 10)
 
     def forward(self, x):
@@ -43,7 +44,7 @@ class Model(nn.Module):
         x = Relu(self.l1(x))
         x = Relu(self.l2(x))
         # no need for activation function because using CrossEntropyLoss
-        return self.l3(x)
+        return self.dropout(self.l3(x))
 
 
 model = Model()
@@ -53,7 +54,7 @@ optimizer = optim.SGD(model.parameters(), lr=3e-2, momentum=0.5)
 
 def train(epoch):
     model.train()
-    for batch_index, (data, target) in enumerate(train_loader):
+    for data, target in tqdm(train_loader):
         optimizer.zero_grad()
         result = model(data)
         loss = criterion(result, target)
@@ -65,7 +66,7 @@ def test():
     model.eval()
     test_loss = 0
     correct = 0
-    for __, (data, target) in enumerate(test_loader):
+    for data, target in test_loader:
         result = model(data)
         test_loss += criterion(result, target).item()
         prediction = result.data.max(1, keepdim=True)[1]
@@ -78,6 +79,5 @@ def test():
 if __name__ == "__main__":
     for epoch in range(1, 21):
         train(epoch)
-        print(epoch)
 
 test()
